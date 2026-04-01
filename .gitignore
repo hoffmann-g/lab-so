@@ -1,0 +1,8 @@
+*
+
+!.gitignore
+!buildroot-2025.02.11/
+!buildroot-2025.02.11/apps/
+!buildroot-2025.02.11/apps/**
+!buildroot-2025.02.11/custom-scripts/
+!buildroot-2025.02.11/custom-scripts/**

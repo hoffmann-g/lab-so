@@ -1,0 +1,35 @@
+#!/bin/sh
+
+# Detecta o IP do host pela rota padrão (usado para configurar o gateway do guest)
+HOST=$(ip route show | head -n 1 | awk '{print $9}')
+
+# Substitui o placeholder [IP-DO-HOST] no template de rede pelo IP real do host,
+# gerando o script de init de rede S41network-config
+sed "s/\[IP-DO-HOST\]/$HOST/g" \
+"$BASE_DIR/../custom-scripts/network-config" \
+> "$BASE_DIR/../custom-scripts/S41network-config"
+
+# Instala o script de rede no diretório de init do target (rootfs em construção)
+cp "$BASE_DIR/../custom-scripts/S41network-config" \
+"$BASE_DIR/target/etc/init.d"
+
+chmod +x "$BASE_DIR/target/etc/init.d/S41network-config"
+
+# Instala a aplicação hello e seu script de init
+cp $BASE_DIR/../apps/hello $BASE_DIR/target/usr/bin
+cp $BASE_DIR/../custom-scripts/S50hello $BASE_DIR/target/etc/init.d
+chmod +x $BASE_DIR/target/etc/init.d/S50hello
+
+# Cria a estrutura de diretórios do servidor web no rootfs
+mkdir -p "$BASE_DIR/target/var/www/cgi-bin"
+
+# Instala o index.html (faz redirect automático para /cgi-bin/monitor)
+cp "$BASE_DIR/../custom-scripts/index.html" "$BASE_DIR/target/var/www/"
+
+# Instala o script de init do httpd (S60 = sobe após a rede S41)
+cp "$BASE_DIR/../custom-scripts/S60httpd" "$BASE_DIR/target/etc/init.d/"
+chmod +x "$BASE_DIR/target/etc/init.d/S60httpd"
+
+# Instala o binário CGI que gera a página de monitoramento do sistema
+cp "$BASE_DIR/../apps/monitor" "$BASE_DIR/target/var/www/cgi-bin/"
+chmod +x "$BASE_DIR/target/var/www/cgi-bin/monitor"
