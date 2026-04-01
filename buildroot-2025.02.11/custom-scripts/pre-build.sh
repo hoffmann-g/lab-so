@@ -30,6 +30,10 @@ cp "$BASE_DIR/../custom-scripts/index.html" "$BASE_DIR/target/var/www/"
 cp "$BASE_DIR/../custom-scripts/S60httpd" "$BASE_DIR/target/etc/init.d/"
 chmod +x "$BASE_DIR/target/etc/init.d/S60httpd"
 
+# Compila o CGI monitor usando o cross-compiler do Buildroot (-static = sem deps em runtime)
+CC="$BASE_DIR/host/bin/i686-buildroot-linux-gnu-gcc"
+$CC -static -o "$BASE_DIR/../apps/monitor" "$BASE_DIR/../apps/monitor.c"
+
 # Instala o binário CGI que gera a página de monitoramento do sistema
 cp "$BASE_DIR/../apps/monitor" "$BASE_DIR/target/var/www/cgi-bin/"
 chmod +x "$BASE_DIR/target/var/www/cgi-bin/monitor"
