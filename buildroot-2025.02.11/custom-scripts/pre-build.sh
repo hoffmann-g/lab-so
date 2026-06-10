@@ -52,12 +52,20 @@ chmod +x "$BASE_DIR/target/var/www/cgi-bin/monitor"
 #
 # # Cuberite é iniciado manualmente: cd /opt/cuberite && ./Cuberite
 
+# Lab 3.3 -- monta o tracefs no boot para uso do ftrace (/sys/kernel/tracing)
+FSTAB="$BASE_DIR/target/etc/fstab"
+grep -q "/sys/kernel/tracing" "$FSTAB" || \
+	echo "tracefs	/sys/kernel/tracing	tracefs	defaults	0	0" >> "$FSTAB"
+
 make -C $BASE_DIR/../modules/hello/
 make -C $BASE_DIR/../modules/mymodule_param/
 make -C $BASE_DIR/../modules/procdriver
 make -C $BASE_DIR/../modules/chardriver/
 make -C $BASE_DIR/../modules/timerdriver/
 make -C $BASE_DIR/../modules/waitdriver/
+
+# Lab 3.3 -- khello com trace_printk (ftrace)
+make -C $BASE_DIR/../modules/khello-trace/
 
 # Compila o módulo pub/sub (T2) e o instala no rootfs (/lib/modules)
 make -C $BASE_DIR/../modules/pubsub/

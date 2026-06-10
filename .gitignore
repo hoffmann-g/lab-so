@@ -18,6 +18,14 @@
 !buildroot-2025.02.11/package/busybox/
 !buildroot-2025.02.11/package/busybox/busybox.config
 
+# Config do kernel (RTC default + Ftrace do Lab 3.3) — precisa ir versionado
+!buildroot-2025.02.11/board/
+!buildroot-2025.02.11/board/qemu/
+!buildroot-2025.02.11/board/qemu/x86/
+!buildroot-2025.02.11/board/qemu/x86/linux.config
+!buildroot-2025.02.11/board/qemu/post-image.sh
+!buildroot-2025.02.11/board/qemu/x86/post-build.sh
+
 # Em modules/, versiona só a fonte (.c/.h/Makefile/Kbuild); ignora artefatos de build
 buildroot-2025.02.11/modules/**/*.o
 buildroot-2025.02.11/modules/**/*.ko
