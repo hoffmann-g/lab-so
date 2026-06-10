@@ -21,7 +21,7 @@
 #define DEFAULT_MAX_SUBS 10
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Guilherme H., João SBT. & George Soares");
+MODULE_AUTHOR("Guilherme Hoffmann, Endrew Soares, João Sbardelotto, George Rother");
 MODULE_DESCRIPTION("Publish/Subscribe kernel module");
 MODULE_VERSION("1.0.0");
 

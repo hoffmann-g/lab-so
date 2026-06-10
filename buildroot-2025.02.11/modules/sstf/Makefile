@@ -3,7 +3,7 @@ BUILDROOT_DIR := $(CURDIR)/../..
 KDIR          := $(BUILDROOT_DIR)/output/build/linux-6.12.27
 COMPILER      := $(BUILDROOT_DIR)/output/host/bin/i686-buildroot-linux-gnu-gcc
 
-# Acesso ao header interno block/elevator.h (não estável para módulos out-of-tree)
+# Access to the internal header block/elevator.h (not stable for out-of-tree modules)
 ccflags-y := -I$(src)/../../output/build/linux-6.12.27/block
 
 all: install

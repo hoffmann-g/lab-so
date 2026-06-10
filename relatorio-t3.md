@@ -1,7 +1,7 @@
 # Trabalho 3 — Escalonador de Disco SSTF
 
 **Laboratório de Sistemas Operacionais — PUCRS**
-Integrantes: _(preencher)_
+Integrantes: Guilherme Hoffmann, Endrew Soares, João Sbardelotto, George Rother
 
 ---
 
@@ -68,11 +68,15 @@ requisição imediata ao escalonador (sem ser absorvida/adiada pela *page cache*
 
 ### 2.3 Ambiente de medição
 
-Distribuição gerada com Buildroot, executada no QEMU. O disco de teste é exposto
-como **virtio-blk** (`/dev/vda`), que possui fila de requisições profunda
-(`nr_requests` ≫ 1) — condição necessária para que a fila do escalonador encha.
-Um disco IDE (`--hdb`) possui `nr_requests = 1` e nunca permitiria acumular
-requisições para reordenação.
+Distribuição gerada com Buildroot, executada no QEMU. O disco de teste é o
+`/dev/sdb` (`--hdb sdb.bin`, do lab 3.2). Um disco IDE reporta inicialmente
+`nr_requests = 1`, o que nunca permitiria acumular requisições para reordenação.
+Por isso, **após anexar o escalonador** (`echo sstf > /sys/block/sdb/queue/scheduler`),
+aumentamos a profundidade da fila de requisições com
+`echo 128 > /sys/block/sdb/queue/nr_requests` — só com o escalonador ativo o
+blk-mq mantém uma fila de *staging* própria, que pode ser mais profunda que a
+profundidade do hardware. Com isso a fila do escalonador enche de verdade
+(até `queue_size`).
 
 ### 2.4 Metodologia de comparação
 
@@ -95,15 +99,17 @@ Todos os casos foram executados com a bateria automatizada `sstf-bench`
 
 | Caso | queue_size | max_wait_ms | escritas | padrão | procs | FCFS (setores) | SSTF (setores) | Redução |
 |---|---|---|---|---|---|---|---|---|
-| 1 — aleatório puro      |  50 |  50 | 30% | rand |  128 | 643.973.480 | 42.445.216 | **93,4%** |
-| 2 — sequencial          |  50 |  50 | 30% | seq  |    1 |       7.992 |      7.992 | **0,0%**  |
-| 3a — fila pequena       |  20 |  50 | 30% | rand |  128 | 628.482.704 | 93.859.968 | **85,1%** |
-| 3b — fila grande        | 100 |  50 | 30% | rand |  128 | 633.628.776 | 30.089.216 | **95,2%** |
-| 4a — timeout curto      |  50 |  20 | 30% | rand |  128 | 603.157.280 | 49.983.696 | **91,7%** |
-| 4b — timeout longo      |  50 | 100 | 30% | rand |  128 | 610.517.128 | 46.103.560 | **92,5%** |
-| 5 — escritas predomin.  |  50 |  50 | 80% | rand |  128 | 661.053.384 | 39.431.512 | **94,0%** |
+| 1 — aleatório puro      |  50 |  50 | 30% | rand |  128 | 652.622.928 |  42.948.032 | **93,4%** |
+| 2 — sequencial          |  50 |  50 | 30% | seq  |    1 |       7.992 |       7.992 | **0,0%**  |
+| 3a — fila pequena       |  20 |  50 | 30% | rand |  128 | 611.423.712 | 116.125.856 | **81,0%** |
+| 3b — fila grande        | 100 |  50 | 30% | rand |  128 | 620.409.616 |  24.825.712 | **96,0%** |
+| 4a — timeout curto      |  50 |  20 | 30% | rand |  128 | 624.265.496 |  56.014.952 | **91,0%** |
+| 4b — timeout longo      |  50 | 100 | 30% | rand |  128 | 655.987.976 |  39.155.000 | **94,0%** |
+| 5 — escritas predomin.  |  50 |  50 | 80% | rand |  128 | 620.530.312 |  51.281.832 | **91,7%** |
 
-(Redução = (FCFS − SSTF) / FCFS.)
+(Redução = (FCFS − SSTF) / FCFS. Disco `/dev/sdb`, `nr_requests=128`. Em todos os
+casos com fila ativa houve despachos por *queue full* — o critério de despacho ao
+atingir o tamanho da fila foi demonstrado.)
 
 ## 4. Discussão por caso
 
@@ -125,23 +131,26 @@ sequencial — com alta concorrência, vários fluxos sequenciais se intercalam 
 agregado volta a parecer aleatório.)
 
 ### Caso 3 — Fila pequena (20) vs. fila grande (100)
-A redução cresce de **85,1%** (fila 20) para **95,2%** (fila 100). Quanto maior a
-fila, mais requisições o escalonador enxerga de uma só vez e melhor é a escolha
-do vizinho mais próximo — uma janela maior aproxima o comportamento de um
-ordenamento global. Com fila pequena, a reordenação é mais "míope" (otimiza
-apenas dentro de lotes de 20), deixando saltos maiores entre lotes consecutivos.
+A redução cresce de **81,0%** (fila 20) para **96,0%** (fila 100). Quanto maior a
+fila, maiores os lotes que o escalonador reordena de uma só vez e melhor é a
+escolha do vizinho mais próximo — uma janela maior aproxima o comportamento de um
+ordenamento global. Com fila pequena, o despacho é forçado cedo (foram os 6
+despachos por *queue full*, o maior número entre os casos): a reordenação fica
+"míope", otimizando apenas dentro de lotes de 20 e deixando saltos maiores entre
+lotes consecutivos.
 
 ### Caso 4 — Timeout curto (20 ms) vs. longo (100 ms)
-As reduções são quase idênticas (**91,7%** vs. **92,5%**). Com alta concorrência
-(128 processos), a fila atinge `queue_size` (50) **antes** de o timer expirar, de
-modo que o despacho é disparado pelo enchimento da fila, e não pelo tempo — daí o
-`max_wait_ms` ter pouca influência neste regime. O timeout é decisivo apenas
-quando a carga é baixa e a fila demora a encher: ele garante que requisições não
-fiquem represadas indefinidamente, ao custo de despachar lotes menores (menos
-reordenação). É o compromisso latência × eficiência.
+A redução sobe de **91,0%** (20 ms) para **94,0%** (100 ms). Neste regime o
+despacho é dominado pelo **timeout** (a fila raramente atinge `queue_size` antes
+de o timer expirar — apenas ~2 despachos por *queue full* em cada caso). Assim, um
+timeout maior dá mais tempo para requisições se acumularem antes do despacho,
+formando lotes maiores e, portanto, com mais oportunidade de reordenação. O
+trade-off é claro: timeout curto reduz a latência de cada requisição, mas
+despacha lotes menores (menos ganho de SSTF); timeout longo melhora o ganho ao
+custo de segurar as requisições por mais tempo.
 
 ### Caso 5 — Predominância de escritas (80%)
-O resultado (**94,0%**) é praticamente o mesmo do caso 1 (predominância de
+O resultado (**91,7%**) é praticamente o mesmo do caso 1 (predominância de
 leituras). Do ponto de vista do escalonador de disco, leitura e escrita são
 apenas requisições com um setor-alvo; a distância de busca não depende da
 direção da operação. Portanto, o ganho do SSTF é governado pela **distribuição
@@ -153,6 +162,7 @@ O módulo SSTF cumpre o ciclo de vida completo (registro, seleção via sysfs,
 liberação em `exit_sched`), despacha por enchimento da fila e por timeout (ambos
 parametrizáveis), e implementa corretamente a escolha pelo menor deslocamento do
 cabeçote. Os experimentos confirmam o comportamento esperado: ganho elevado em
-cargas aleatórias (até ~95%), nulo em cargas sequenciais, crescente com o tamanho
-da fila, e independente da proporção de escritas. O timeout mostrou-se relevante
-apenas sob baixa concorrência, atuando como salvaguarda contra represamento.
+cargas aleatórias (até ~96%), nulo em cargas sequenciais, crescente com o tamanho
+da fila (81% → 96%) e com o timeout (91% → 94%), e independente da proporção de
+escritas. Tanto o despacho por fila cheia quanto o por timeout foram observados,
+confirmando os dois mecanismos de despacho parametrizáveis.

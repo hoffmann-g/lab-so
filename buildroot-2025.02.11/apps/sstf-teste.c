@@ -1,21 +1,21 @@
 /*
- * Trabalho 3 -- Aplicação de teste para o escalonador de disco SSTF.
+ * Trabalho 3 -- Test application for the SSTF disk scheduler.
  *
- * Cria N processos (fork) que geram um grande número de requisições de leitura
- * e escrita em regiões aleatórias do disco de testes (/dev/sdb), cobrindo todo
- * o disco, para alimentar o escalonador. Os resultados (comparação SSTF x FCFS)
- * são exibidos pelo módulo no log do kernel (dmesg) quando debug está ativo.
+ * Creates N processes (fork) that generate a large number of read and write
+ * requests over random regions of the test disk, covering the whole disk, to
+ * feed the scheduler. The results (SSTF vs FCFS comparison) are printed by the
+ * module in the kernel log (dmesg) when debug is enabled.
  *
- * Parâmetros (em tempo de execução):
- *   block_size  : tamanho do bloco em bytes (potência de 2)
- *   disk_blocks : tamanho do disco em blocos
- *   n_ops       : número total de operações de E/S
- *   write_pct   : percentual de escritas (0-100), o restante são leituras
- *   min_req     : tamanho mínimo de cada requisição em bytes (<= block_size)
- *   max_req     : tamanho máximo de cada requisição em bytes (<= block_size)
- *   n_procs     : número de processos concorrentes (fork)
+ * Parameters (run time):
+ *   block_size  : block size in bytes (power of two)
+ *   disk_blocks : disk size in blocks
+ *   n_ops       : total number of I/O operations
+ *   write_pct   : write percentage (0-100); the rest are reads
+ *   min_req     : minimum size of each request in bytes (<= block_size)
+ *   max_req     : maximum size of each request in bytes (<= block_size)
+ *   n_procs     : number of concurrent processes (fork)
  */
-#define _GNU_SOURCE	/* necessário para O_DIRECT */
+#define _GNU_SOURCE	/* needed for O_DIRECT */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,24 +25,24 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
-/* Device de teste. Padrão /dev/sdb (lab 3.2). Para a fila do escalonador
- * encher de verdade é preciso um disco de fila profunda (nr_requests > 1):
- * use um disco virtio-blk no QEMU e aponte SSTF_DEV=/dev/vda. O IDE (--hdb)
- * tem nr_requests=1 e nunca enche a fila. */
+/* Test device. Default /dev/sdb (--hdb sdb.bin, lab 3.2). Override via SSTF_DEV.
+ * For the scheduler queue to fill, raise the request-queue depth AFTER attaching
+ * the scheduler: `echo 128 > /sys/block/sdb/queue/nr_requests` (a plain IDE disk
+ * starts at nr_requests=1). The sstf-bench script does this automatically. */
 #define DEFAULT_DEV "/dev/sdb"
 
 static void usage(const char *p)
 {
 	fprintf(stderr,
-		"Uso: %s <block_size> <disk_blocks> <n_ops> <write_pct> <min_req> <max_req> <n_procs> [padrao]\n"
-		"  block_size : tamanho do bloco em bytes (potencia de 2)\n"
-		"  disk_blocks: tamanho do disco em blocos\n"
-		"  n_ops      : numero total de operacoes de E/S\n"
-		"  write_pct  : percentual de escritas (0-100)\n"
-		"  min_req    : tamanho minimo de cada requisicao em bytes (<= block_size)\n"
-		"  max_req    : tamanho maximo de cada requisicao em bytes (<= block_size)\n"
-		"  n_procs    : numero de processos concorrentes (fork)\n"
-		"  [padrao]   : opcional - 'seq' (sequencial) ou 'rand' (aleatorio; padrao)\n", p);
+		"Usage: %s <block_size> <disk_blocks> <n_ops> <write_pct> <min_req> <max_req> <n_procs> [pattern]\n"
+		"  block_size : block size in bytes (power of two)\n"
+		"  disk_blocks: disk size in blocks\n"
+		"  n_ops      : total number of I/O operations\n"
+		"  write_pct  : write percentage (0-100)\n"
+		"  min_req    : minimum size of each request in bytes (<= block_size)\n"
+		"  max_req    : maximum size of each request in bytes (<= block_size)\n"
+		"  n_procs    : number of concurrent processes (fork)\n"
+		"  [pattern]  : optional - 'seq' (sequential) or 'rand' (random; default)\n", p);
 }
 
 static void worker(int idx, int n_procs, long block_size, long disk_blocks,
@@ -51,43 +51,43 @@ static void worker(int idx, int n_procs, long block_size, long disk_blocks,
 	char *buf;
 	int fd;
 
-	/* semente distinta por processo => padrões de acesso independentes */
+	/* distinct seed per process => independent access patterns */
 	srand((unsigned)(getpid() ^ (idx << 16)));
 
-	/* device configurável por SSTF_DEV (padrão DEFAULT_DEV) */
+	/* device configurable via SSTF_DEV (default DEFAULT_DEV) */
 	const char *dev = getenv("SSTF_DEV");
 	if (!dev || !*dev)
 		dev = DEFAULT_DEV;
 
-	/* O_DIRECT: cada read/write vira uma requisição imediata ao escalonador,
-	 * sem passar pela page cache (que absorveria/atrasaria a maioria das ops) */
+	/* O_DIRECT: each read/write becomes an immediate request to the scheduler,
+	 * bypassing the page cache (which would absorb/delay most of the ops) */
 	fd = open(dev, O_RDWR | O_DIRECT);
 	if (fd < 0) {
 		perror(dev);
 		_exit(1);
 	}
 
-	/* O_DIRECT exige buffer alinhado à página e tamanhos múltiplos de 512 */
+	/* O_DIRECT requires a page-aligned buffer and sizes multiple of 512 */
 	size_t bufsz = ((max_req + 4095) / 4096) * 4096;
 	if (posix_memalign((void **)&buf, 4096, bufsz) != 0) {
-		fprintf(stderr, "posix_memalign falhou\n");
+		fprintf(stderr, "posix_memalign failed\n");
 		close(fd);
 		_exit(1);
 	}
 	memset(buf, idx & 0xff, bufsz);
 
-	/* em modo sequencial, cada processo percorre uma faixa própria do disco */
+	/* in sequential mode, each process scans its own range of the disk */
 	long base = (long)idx * (disk_blocks / (n_procs > 0 ? n_procs : 1));
 
 	for (long i = 0; i < ops; i++) {
-		long blk  = seq ? (base + i) % disk_blocks    /* enderecos crescentes/sequenciais */
-				: rand() % disk_blocks;       /* bloco aleatorio em todo o disco */
+		long blk  = seq ? (base + i) % disk_blocks    /* increasing/sequential addresses */
+				: rand() % disk_blocks;       /* random block over the whole disk */
 		long span = (max_req > min_req)
 			    ? (min_req + rand() % (max_req - min_req + 1))
-			    : min_req;                        /* tamanho variável da requisição */
+			    : min_req;                        /* variable request size */
 		off_t off = (off_t)blk * block_size;
 
-		/* O_DIRECT: tamanho múltiplo de 512 (offset já alinhado: bloco * block_size) */
+		/* O_DIRECT: size multiple of 512 (offset already aligned: block * block_size) */
 		span = (span / 512) * 512;
 		if (span < 512)
 			span = 512;
@@ -133,8 +133,8 @@ int main(int argc, char *argv[])
 	if (ops_per_proc < 1)
 		ops_per_proc = 1;
 
-	printf("sstf-teste: %d processos x %ld ops "
-	       "(bloco=%ld B, disco=%ld blocos, escrita=%d%%, req=%ld..%ld B, padrao=%s)\n",
+	printf("sstf-teste: %d processes x %ld ops "
+	       "(block=%ld B, disk=%ld blocks, writes=%d%%, req=%ld..%ld B, pattern=%s)\n",
 	       n_procs, ops_per_proc, block_size, disk_blocks, write_pct, min_req, max_req,
 	       seq ? "seq" : "rand");
 
@@ -153,6 +153,6 @@ int main(int argc, char *argv[])
 	for (int i = 0; i < n_procs; i++)
 		wait(NULL);
 
-	printf("sstf-teste: concluido. Veja a comparacao SSTF x FCFS no log do kernel (dmesg).\n");
+	printf("sstf-teste: done. See the SSTF vs FCFS comparison in the kernel log (dmesg).\n");
 	return 0;
 }
