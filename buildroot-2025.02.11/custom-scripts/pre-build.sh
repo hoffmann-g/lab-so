@@ -66,3 +66,8 @@ make -C $BASE_DIR/../modules/pubsub/
 $CC -o "$BASE_DIR/../apps/pubsub-teste" "$BASE_DIR/../apps/pubsub-teste.c"
 cp "$BASE_DIR/../apps/pubsub-teste" "$BASE_DIR/target/usr/bin/"
 chmod +x "$BASE_DIR/target/usr/bin/pubsub-teste"
+
+# Lab 3.1 -- Escalonamento de tempo real com SCHED_DEADLINE (apps/schedrt)
+$CC -o "$BASE_DIR/target/usr/bin/schedrt-query" "$BASE_DIR/../apps/schedrt/query.c"
+$CC -o "$BASE_DIR/target/usr/bin/schedrt-dl"    "$BASE_DIR/../apps/schedrt/dl.c"
+$CC -pthread -o "$BASE_DIR/target/usr/bin/schedrt-multi" "$BASE_DIR/../apps/schedrt/multi.c"
