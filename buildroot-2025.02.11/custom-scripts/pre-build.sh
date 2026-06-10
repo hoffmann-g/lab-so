@@ -67,6 +67,9 @@ make -C $BASE_DIR/../modules/waitdriver/
 # Lab 3.3 -- khello com trace_printk (ftrace)
 make -C $BASE_DIR/../modules/khello-trace/
 
+# Trabalho 3 -- escalonador de disco SSTF
+make -C $BASE_DIR/../modules/sstf/
+
 # Compila o módulo pub/sub (T2) e o instala no rootfs (/lib/modules)
 make -C $BASE_DIR/../modules/pubsub/
 
@@ -84,3 +87,10 @@ $CC -pthread -o "$BASE_DIR/target/usr/bin/schedrt-multi" "$BASE_DIR/../apps/sche
 $CC -o "$BASE_DIR/target/usr/bin/disk-test-raw"         "$BASE_DIR/../apps/disk-test/raw.c"
 $CC -o "$BASE_DIR/target/usr/bin/disk-test-sector-read" "$BASE_DIR/../apps/disk-test/sector-read.c"
 $CC -o "$BASE_DIR/target/usr/bin/disk-test-bench"       "$BASE_DIR/../apps/disk-test/bench.c"
+
+# Trabalho 3 -- aplicação de teste do escalonador SSTF
+$CC -o "$BASE_DIR/target/usr/bin/sstf-teste" "$BASE_DIR/../apps/sstf-teste.c"
+
+# Trabalho 3 -- script de bateria de testes (SSTF vs FCFS)
+cp "$BASE_DIR/../custom-scripts/sstf-bench.sh" "$BASE_DIR/target/usr/bin/sstf-bench"
+chmod +x "$BASE_DIR/target/usr/bin/sstf-bench"
