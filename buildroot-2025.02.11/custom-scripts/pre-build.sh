@@ -37,3 +37,32 @@ $CC -static -o "$BASE_DIR/../apps/monitor" "$BASE_DIR/../apps/monitor.c"
 # Instala o binário CGI que gera a página de monitoramento do sistema
 cp "$BASE_DIR/../apps/monitor" "$BASE_DIR/target/var/www/cgi-bin/"
 chmod +x "$BASE_DIR/target/var/www/cgi-bin/monitor"
+
+# --- Cuberite (servidor Minecraft) desabilitado: extra, fora dos materiais ---
+# Para reativar, descomente o bloco abaixo (libstdc++ é dependência só do Cuberite).
+#
+# # Copia libstdc++ para o target (necessário para o Cuberite)
+# cp "$BASE_DIR/host/i686-buildroot-linux-gnu/lib/libstdc++.so.6.0.32" "$BASE_DIR/target/usr/lib/"
+# ln -sf libstdc++.so.6.0.32 "$BASE_DIR/target/usr/lib/libstdc++.so.6"
+#
+# # Instala o Cuberite (servidor Minecraft) em /opt/cuberite
+# mkdir -p "$BASE_DIR/target/opt/cuberite"
+# cp -r "$BASE_DIR/../apps/cuberite/." "$BASE_DIR/target/opt/cuberite/"
+# chmod +x "$BASE_DIR/target/opt/cuberite/Cuberite"
+#
+# # Cuberite é iniciado manualmente: cd /opt/cuberite && ./Cuberite
+
+make -C $BASE_DIR/../modules/hello/
+make -C $BASE_DIR/../modules/mymodule_param/
+make -C $BASE_DIR/../modules/procdriver
+make -C $BASE_DIR/../modules/chardriver/
+make -C $BASE_DIR/../modules/timerdriver/
+make -C $BASE_DIR/../modules/waitdriver/
+
+# Compila o módulo pub/sub (T2) e o instala no rootfs (/lib/modules)
+make -C $BASE_DIR/../modules/pubsub/
+
+# Compila e instala a aplicação de teste do pub/sub (T2)
+$CC -o "$BASE_DIR/../apps/pubsub-teste" "$BASE_DIR/../apps/pubsub-teste.c"
+cp "$BASE_DIR/../apps/pubsub-teste" "$BASE_DIR/target/usr/bin/"
+chmod +x "$BASE_DIR/target/usr/bin/pubsub-teste"

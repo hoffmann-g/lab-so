@@ -8,3 +8,22 @@
 !buildroot-2025.02.11/custom-scripts/**
 !buildroot-2025.02.11/configs/
 !buildroot-2025.02.11/configs/**
+!buildroot-2025.02.11/modules/
+!buildroot-2025.02.11/modules/**
+
+!buildroot-2025.02.11/.config
+
+# Config do BusyBox com httpd/CGI habilitado (T1) — precisa ir versionado
+!buildroot-2025.02.11/package/
+!buildroot-2025.02.11/package/busybox/
+!buildroot-2025.02.11/package/busybox/busybox.config
+
+# Em modules/, versiona só a fonte (.c/.h/Makefile/Kbuild); ignora artefatos de build
+buildroot-2025.02.11/modules/**/*.o
+buildroot-2025.02.11/modules/**/*.ko
+buildroot-2025.02.11/modules/**/*.mod
+buildroot-2025.02.11/modules/**/*.mod.c
+buildroot-2025.02.11/modules/**/*.cmd
+buildroot-2025.02.11/modules/**/*.symvers
+buildroot-2025.02.11/modules/**/modules.order
+buildroot-2025.02.11/modules/**/.tmp_versions/
