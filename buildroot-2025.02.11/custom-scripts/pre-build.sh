@@ -71,3 +71,8 @@ chmod +x "$BASE_DIR/target/usr/bin/pubsub-teste"
 $CC -o "$BASE_DIR/target/usr/bin/schedrt-query" "$BASE_DIR/../apps/schedrt/query.c"
 $CC -o "$BASE_DIR/target/usr/bin/schedrt-dl"    "$BASE_DIR/../apps/schedrt/dl.c"
 $CC -pthread -o "$BASE_DIR/target/usr/bin/schedrt-multi" "$BASE_DIR/../apps/schedrt/multi.c"
+
+# Lab 3.2 -- Escalonamento de E/S de disco (apps/disk-test)
+$CC -o "$BASE_DIR/target/usr/bin/disk-test-raw"         "$BASE_DIR/../apps/disk-test/raw.c"
+$CC -o "$BASE_DIR/target/usr/bin/disk-test-sector-read" "$BASE_DIR/../apps/disk-test/sector-read.c"
+$CC -o "$BASE_DIR/target/usr/bin/disk-test-bench"       "$BASE_DIR/../apps/disk-test/bench.c"
