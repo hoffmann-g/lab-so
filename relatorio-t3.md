@@ -1,7 +1,13 @@
 # Trabalho 3 — Escalonador de Disco SSTF
 
-**Laboratório de Sistemas Operacionais — PUCRS**
-Integrantes: Guilherme Hoffmann, Endrew Soares, João Sbardelotto, George Rother
+**Laboratório de Sistemas Operacionais — PUCRS**\
+**Prof. Angelo Elias Dal Zotto**\
+\
+**Integrantes:**\
+Guilherme Hoffmann\
+Endrew Soares\
+João Sbardelotto\
+George Rother
 
 ---
 
@@ -107,7 +113,7 @@ Todos os casos foram executados com a bateria automatizada `sstf-bench`
 | 4b — timeout longo      |  50 | 100 | 30% | rand |  128 | 655.987.976 |  39.155.000 | **94,0%** |
 | 5 — escritas predomin.  |  50 |  50 | 80% | rand |  128 | 620.530.312 |  51.281.832 | **91,7%** |
 
-(Redução = (FCFS − SSTF) / FCFS. Disco `/dev/sdb`, `nr_requests=128`. Em todos os
+(Redução = (FCFS - SSTF) / FCFS. Disco `/dev/sdb`, `nr_requests=128`. Em todos os
 casos com fila ativa houve despachos por *queue full* — o critério de despacho ao
 atingir o tamanho da fila foi demonstrado.)
 
@@ -124,7 +130,7 @@ ordem de chegada e atender pelo vizinho mais próximo.
 ### Caso 2 — Acesso sequencial
 Com um único processo gerando endereços **crescentes e contíguos**, a ordem de
 chegada já é a ordem ótima de atendimento. FCFS e SSTF percorrem exatamente os
-mesmos 7.992 setores → **redução de 0%**. O SSTF não tem o que melhorar quando o
+mesmos 7.992 setores, ou seja, **redução de 0%**. O SSTF não tem o que melhorar quando o
 padrão já é sequencial; seu custo de reordenação só compensa quando há
 aleatoriedade. (Usou-se 1 processo justamente para preservar a natureza
 sequencial — com alta concorrência, vários fluxos sequenciais se intercalam e o
@@ -163,6 +169,6 @@ liberação em `exit_sched`), despacha por enchimento da fila e por timeout (amb
 parametrizáveis), e implementa corretamente a escolha pelo menor deslocamento do
 cabeçote. Os experimentos confirmam o comportamento esperado: ganho elevado em
 cargas aleatórias (até ~96%), nulo em cargas sequenciais, crescente com o tamanho
-da fila (81% → 96%) e com o timeout (91% → 94%), e independente da proporção de
+da fila (de 81% a 96%) e com o timeout (de 91% a 94%), e independente da proporção de
 escritas. Tanto o despacho por fila cheia quanto o por timeout foram observados,
 confirmando os dois mecanismos de despacho parametrizáveis.
