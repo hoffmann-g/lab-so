@@ -755,24 +755,17 @@ comportamento teórico da política, executamos o experimento e comparamos
 hipótese com evidência, discutindo convergências e divergências.</p>
 <h2 id="2.-implementa%C3%A7%C3%A3o-(apps%2Fthread_runner%2Fthread_runner.c)" tabindex="-1">2. Implementação (<code>apps/thread_runner/thread_runner.c</code>)</h2>
 <ul>
-<li>
-<p><strong>Buffer global e cursor</strong>: um buffer de tamanho <code>buffer_kb * 1024</code> bytes é
+<li><strong>Buffer global e cursor</strong>: um buffer de tamanho <code>buffer_kb * 1024</code> bytes é
 alocado antes da criação das threads; um ponteiro/índice global
-(<code>current_pos</code>) marca a próxima posição livre.</p>
-</li>
-<li>
-<p><strong>Mutex com espera ocupada</strong>: implementado com <code>atomic_flag</code> — cada thread
+(<code>current_pos</code>) marca a próxima posição livre.</li>
+<li><strong>Mutex com espera ocupada</strong>: implementado com <code>atomic_flag</code> — cada thread
 chama <code>atomic_flag_test_and_set()</code> em loop para adquirir a região crítica
 (retorna <code>false</code> quando conseguiu) e <code>atomic_flag_clear()</code> para liberá-la.
-Essas operações usam CMPXCHG atômico em x86, sem chamada de sistema.</p>
-</li>
-<li>
-<p><strong>Delay com espera ocupada</strong>: <code>busy_wait_delay_ms()</code> usa
+Essas operações usam CMPXCHG atômico em x86, sem chamada de sistema.</li>
+<li><strong>Delay com espera ocupada</strong>: <code>busy_wait_delay_ms()</code> usa
 <code>clock_gettime(CLOCK_MONOTONIC_RAW, ...)</code> em loop, comparando o tempo
-decorrido contra o alvo (1ms), sem <code>sleep()</code>/<code>nanosleep()</code>.</p>
-</li>
-<li>
-<p><strong>Política/prioridade</strong>: configuradas com <code>sched_setscheduler()</code> na thread
+decorrido contra o alvo (1ms), sem <code>sleep()</code>/<code>nanosleep()</code>.</li>
+<li><strong>Política/prioridade</strong>: configuradas com <code>sched_setscheduler()</code> na thread
 <strong>principal</strong>, antes de criar as threads. Como <code>pthread_create()</code> é chamado
 com atributo padrão (<code>PTHREAD_INHERIT_SCHED</code>), todas as threads criadas em
 seguida herdam automaticamente a mesma política/prioridade da thread
@@ -783,10 +776,8 @@ real (1–99) passada em <code>struct sched_param</code>. Se <code>sched_setsche
 (por exemplo, política de tempo real sem privilégio), o programa <strong>aborta</strong>
 em vez de continuar silenciosamente sob outra política — importante para
 não coletar dados de um experimento que na prática rodou com configuração
-diferente da pretendida.</p>
-</li>
-<li>
-<p><strong>Reconstrução da sequência e da contagem de escalonamentos</strong>: ao final,
+diferente da pretendida.</li>
+<li><strong>Reconstrução da sequência e da contagem de escalonamentos</strong>: ao final,
 antes de qualquer poda/reprocessamento, a saída bruta do buffer é impressa.
 Em seguida, o buffer é varrido uma vez: cada <strong>troca</strong> de caractere em
 relação ao anterior indica uma nova rajada (run) contígua, ou seja, uma nova
@@ -796,19 +787,7 @@ e a contagem por thread é o número de rajadas daquela thread — <strong>não<
 total de bytes escritos por ela. Essa distinção é essencial: no exemplo do
 próprio enunciado, cada thread escreve dezenas de caracteres consecutivos
 mas é contada como escalonada apenas <strong>uma vez</strong> (<code>A = 1</code>), porque só houve
-uma rajada de cada.</p>
-<blockquote>
-<p>Esse ponto foi um bug real encontrado numa implementação inicial de
-referência do grupo: contar <code>thread_counts[id]++</code> a cada byte escrito
-produz o total de caracteres por thread (que soma sempre <code>buffer_size</code>),
-não o número de vezes que o escalonador a despachou; e imprimir a
-sequência apenas na ordem de criação das threads (<code>for i: putchar('A'+i)</code>)
-não reflete o que de fato ocorreu no buffer. Ambos foram corrigidos
-reconstruindo sequência/contagem a partir das rajadas contíguas do buffer
-final, o que também torna a contagem verificável (soma das rajadas por
-thread deve bater com o número de blocos visíveis no buffer impresso).</p>
-</blockquote>
-</li>
+uma rajada de cada.</li>
 </ul>
 <h2 id="3.-metodologia-experimental" tabindex="-1">3. Metodologia experimental</h2>
 <ul>
