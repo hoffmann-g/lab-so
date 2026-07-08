@@ -9,12 +9,17 @@
 #include <time.h>
 #include <unistd.h>
 
+// buffer global compartilhado. current_pos = proxima posicao livre
 char *buffer;
 int buffer_size;
 int current_pos = 0;
+
+// lock via atomic_flag = cmpxchg atomico, sem passar pelo kernel.
+// nunca bloqueia, so gira (espera ocupada de verdade)
 atomic_flag lock = ATOMIC_FLAG_INIT;
 
-/* Espera ocupada de 1ms entre escritas de cada thread na regiao critica. */
+// delay de 1ms, espera ocupada (sem sleep/nanosleep).
+// clock_gettime em loop ate passar o tempo alvo
 void busy_wait_delay_ms(long ms) {
     struct timespec start, current;
     long target_ns = ms * 1000000L;
@@ -34,25 +39,30 @@ void *worker(void *arg) {
     char c = 'A' + id;
 
     while (1) {
-        /* Obter acesso a regiao critica usando spinlock (espera ocupada) */
+        // espera ocupada pro lock
         while (atomic_flag_test_and_set(&lock)) {
             /* spin */
         }
 
+        // check dentro da secao critica, senao duas threads passam
+        // pela checagem juntas e as duas escrevem
         if (current_pos >= buffer_size) {
             atomic_flag_clear(&lock);
-            break; /* buffer cheio, encerrar a thread */
+            break; // buffer cheio
         }
 
         buffer[current_pos++] = c;
 
         atomic_flag_clear(&lock);
 
+        // delay fora do lock de proposito: com o lock livre, o
+        // escalonador tem chance de trocar pra outra thread aqui
         busy_wait_delay_ms(1);
     }
     return NULL;
 }
 
+// string da cli -> constante SCHED_* do sched.h. -1 = invalida
 static int parse_policy(const char *politica) {
     if (!strcmp(politica, "SCHED_OTHER"))
         return SCHED_OTHER;
@@ -81,6 +91,7 @@ int main(int argc, char *argv[]) {
     char *politica = argv[3];
     int prioridade = atoi(argv[4]);
 
+    // max 26 = uma letra por thread (A, B, C...)
     if (num_threads <= 0 || num_threads > 26) {
         fprintf(stderr, "Erro: numero_de_threads deve estar entre 1 e 26.\n");
         return 1;
@@ -103,20 +114,23 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    /* Configura a politica/prioridade da thread principal ANTES de criar as
-     * threads. Com o atributo default (PTHREAD_INHERIT_SCHED), as threads
-     * criadas em seguida herdam automaticamente politica e prioridade. */
+    // seta politica na thread principal, antes de criar as workers.
+    // pthread_create com atributo NULL = PTHREAD_INHERIT_SCHED,
+    // entao as threads criadas depois ja nascem com a mesma config
     struct sched_param param = {.sched_priority = 0};
     if (policy_id == SCHED_RR || policy_id == SCHED_FIFO)
         param.sched_priority = prioridade;
 
     if (sched_setscheduler(0, policy_id, &param) == -1) {
         perror("sched_setscheduler");
+        // aborta em vez de seguir com politica errada sem avisar
         if (policy_id == SCHED_RR || policy_id == SCHED_FIFO)
             fprintf(stderr, "Aviso: politicas de tempo real exigem root ou CAP_SYS_NICE.\n");
         return 1;
     }
 
+    // OTHER/BATCH/IDLE: prioridade estatica fixa em 0, quem varia e o
+    // nice value, setado a parte
     if (policy_id == SCHED_OTHER || policy_id == SCHED_BATCH || policy_id == SCHED_IDLE) {
         errno = 0;
         if (nice(prioridade) == -1 && errno != 0)
@@ -138,17 +152,18 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // buffer cheio = todas as threads ja saíram do loop
     for (int i = 0; i < num_threads; i++)
         pthread_join(threads[i], NULL);
 
+    // buffer cru, do jeito que ficou gravado
     fwrite(buffer, 1, buffer_size, stdout);
     printf("\n\n");
 
-    /* A "sequencia de execucao" e a contagem de vezes que cada thread foi
-     * escalonada sao reconstruidas a partir das rajadas (runs) contiguas de
-     * cada caractere no buffer final: cada troca de caractere corresponde a
-     * uma nova vez em que o escalonador despachou aquela thread para a CPU
-     * (nao e o total de bytes escritos por ela). */
+    // contagem = numero de rajadas contiguas de cada char no buffer,
+    // NAO o total de bytes escritos (500 bytes seguidos = 1 rajada,
+    // nao 500). troca de char = nova rajada = nova vez escalonada.
+    // sequencia = essas trocas em ordem (ABCDABCD...)
     int *thread_counts = calloc(num_threads, sizeof(int));
     char *sequence = malloc(buffer_size + 1);
     int seq_len = 0;
