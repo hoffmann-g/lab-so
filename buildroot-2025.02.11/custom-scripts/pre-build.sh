@@ -94,3 +94,20 @@ $CC -o "$BASE_DIR/target/usr/bin/sstf-teste" "$BASE_DIR/../apps/sstf-teste.c"
 # Trabalho 3 -- script de bateria de testes (SSTF vs FCFS)
 cp "$BASE_DIR/../custom-scripts/sstf-bench.sh" "$BASE_DIR/target/usr/bin/sstf-bench"
 chmod +x "$BASE_DIR/target/usr/bin/sstf-bench"
+
+# Lab 4.1 -- estresse do sistema de alocação de memória (apps/mem-test)
+$CC -o "$BASE_DIR/target/usr/bin/mem-test-malloc" "$BASE_DIR/../apps/mem-test/malloc.c"
+$CC -o "$BASE_DIR/target/usr/bin/mem-test-write"  "$BASE_DIR/../apps/mem-test/write.c"
+$CC -o "$BASE_DIR/target/usr/bin/mem-test-read"   "$BASE_DIR/../apps/mem-test/read.c"
+$CC -o "$BASE_DIR/target/usr/bin/mem-test-ulimit" "$BASE_DIR/../apps/mem-test/ulimit.c"
+
+# Lab 4.2 -- segmentos de processo (apps/segments + modules/segments)
+$CC -o "$BASE_DIR/target/usr/bin/segments-address" "$BASE_DIR/../apps/segments/address.c"
+$CC -o "$BASE_DIR/target/usr/bin/segments-symbols" "$BASE_DIR/../apps/segments/symbols.c"
+make -C $BASE_DIR/../modules/segments
+
+# Lab 4.3 -- app multithread p/ observar o escalonador com trace-cmd/KernelShark
+$CC -pthread -o "$BASE_DIR/target/usr/bin/sched-threads" "$BASE_DIR/../apps/sched-threads/sched-threads.c"
+
+# Trabalho 4 -- thread_runner
+$CC -pthread -o "$BASE_DIR/target/usr/bin/thread_runner" "$BASE_DIR/../apps/thread_runner/thread_runner.c"
