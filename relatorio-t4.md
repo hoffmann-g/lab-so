@@ -64,16 +64,6 @@ hipótese com evidência, discutindo convergências e divergências.
   mas é contada como escalonada apenas **uma vez** (`A = 1`), porque só houve
   uma rajada de cada.
 
-  > Esse ponto foi um bug real encontrado numa implementação inicial de
-  > referência do grupo: contar `thread_counts[id]++` a cada byte escrito
-  > produz o total de caracteres por thread (que soma sempre `buffer_size`),
-  > não o número de vezes que o escalonador a despachou; e imprimir a
-  > sequência apenas na ordem de criação das threads (`for i: putchar('A'+i)`)
-  > não reflete o que de fato ocorreu no buffer. Ambos foram corrigidos
-  > reconstruindo sequência/contagem a partir das rajadas contíguas do buffer
-  > final, o que também torna a contagem verificável (soma das rajadas por
-  > thread deve bater com o número de blocos visíveis no buffer impresso).
-
 ## 3. Metodologia experimental
 
 - **Parâmetros fixos**: 4 threads (`A`,`B`,`C`,`D`), buffer de 8 KiB (8192
