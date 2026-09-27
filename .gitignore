@@ -1,14 +1,12 @@
 *
 
-!.gitignore
+!/.gitignore
 !relatorio-t3.md
 !buildroot-2025.02.11/
 !buildroot-2025.02.11/apps/
 !buildroot-2025.02.11/apps/**
 !buildroot-2025.02.11/custom-scripts/
 !buildroot-2025.02.11/custom-scripts/**
-!buildroot-2025.02.11/configs/
-!buildroot-2025.02.11/configs/**
 !buildroot-2025.02.11/modules/
 !buildroot-2025.02.11/modules/**
 
@@ -24,8 +22,6 @@
 !buildroot-2025.02.11/board/qemu/
 !buildroot-2025.02.11/board/qemu/x86/
 !buildroot-2025.02.11/board/qemu/x86/linux.config
-!buildroot-2025.02.11/board/qemu/post-image.sh
-!buildroot-2025.02.11/board/qemu/x86/post-build.sh
 
 # Em modules/, versiona só a fonte (.c/.h/Makefile/Kbuild); ignora artefatos de build
 buildroot-2025.02.11/modules/**/*.o
@@ -36,3 +32,14 @@ buildroot-2025.02.11/modules/**/*.cmd
 buildroot-2025.02.11/modules/**/*.symvers
 buildroot-2025.02.11/modules/**/modules.order
 buildroot-2025.02.11/modules/**/.tmp_versions/
+buildroot-2025.02.11/modules/**/*.mod.o
+
+# Compiled app binaries and generated files
+buildroot-2025.02.11/apps/**/*.o
+buildroot-2025.02.11/apps/hello
+buildroot-2025.02.11/apps/monitor
+buildroot-2025.02.11/apps/pubsub-teste
+buildroot-2025.02.11/custom-scripts/S41network-config
+
+# Local users table (contains passwords); copy from users.txt.example
+buildroot-2025.02.11/custom-scripts/users.txt
