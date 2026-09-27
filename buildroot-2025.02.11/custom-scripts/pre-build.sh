@@ -16,7 +16,7 @@ cp "$BASE_DIR/../custom-scripts/S41network-config" \
 chmod +x "$BASE_DIR/target/etc/init.d/S41network-config"
 
 # Instala a aplicação hello e seu script de init
-cp $BASE_DIR/../apps/hello $BASE_DIR/target/usr/bin
+"$BASE_DIR/host/bin/i686-buildroot-linux-gnu-gcc" -o "$BASE_DIR/target/usr/bin/hello" "$BASE_DIR/../apps/hello.c"
 cp $BASE_DIR/../custom-scripts/S50hello $BASE_DIR/target/etc/init.d
 chmod +x $BASE_DIR/target/etc/init.d/S50hello
 
