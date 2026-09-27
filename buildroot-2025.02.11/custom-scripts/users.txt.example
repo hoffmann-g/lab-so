@@ -1,0 +1,5 @@
+# Buildroot users table (BR2_ROOTFS_USERS_TABLES). Copy to users.txt before building.
+# Format: username uid group gid password home shell groups comment
+# The httpd user runs the BusyBox web server (see S60httpd).
+# "=" before the password means clear text; replace CHANGE_ME, or use "*" to disable login.
+httpd -1 httpd -1 =CHANGE_ME /var/www /bin/sh - httpd
