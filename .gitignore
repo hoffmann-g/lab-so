@@ -2,6 +2,7 @@
 
 !/.gitignore
 !relatorio-t3.md
+!README.md
 !buildroot-2025.02.11/
 !buildroot-2025.02.11/apps/
 !buildroot-2025.02.11/apps/**
